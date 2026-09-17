@@ -1,0 +1,38 @@
+name: Prepare refactor verification workspace
+on:
+  push:
+    branches: [docs/canvas-first-v1]
+    paths: [.github/workflows/refactor-bootstrap.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.16.0
+      - name: Prepare isolated verification dependencies
+        run: |
+          mkdir -p /tmp/sceneweave-verification
+          cd /tmp/sceneweave-verification
+          npm init -y
+          npm install --save-exact svelte@5 @xyflow/svelte@1 @sveltejs/vite-plugin-svelte@5 vite@6 typescript@5 tsx@4 svelte-check@4 @types/node@22 @types/three@0.180 three@0.180 yaml@2 zod@4 @modelcontextprotocol/sdk@1 @playwright/test@1 fflate@0.8
+          npm ls --depth=0 > dependency-versions.txt
+      - name: Package source and verification dependencies
+        run: |
+          git archive --format=tar HEAD | gzip > /tmp/source.tar.gz
+          tar -czf /tmp/toolchain.tar.gz -C /tmp/sceneweave-verification .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: refactor-verification-workspace
+          path: |
+            /tmp/source.tar.gz
+            /tmp/toolchain.tar.gz
+          retention-days: 3
+          compression-level: 0
